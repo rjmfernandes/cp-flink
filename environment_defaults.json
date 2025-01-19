@@ -4,7 +4,7 @@
           "metrics.reporter.prom.factory.class": "org.apache.flink.metrics.prometheus.PrometheusReporterFactory",
           "metrics.reporter.prom.port": "9249-9250",
           "taskmanager.numberOfTaskSlots": "1",
-          "state.savepoints.dir": "s3://test/savepoins",
+          "state.savepoints.dir": "s3://test/savepoints",
           "state.checkpoints.dir": "s3://test/checkpoints",
           "s3.endpoint": "http://minio-svc.minio-dev:9000",
           "s3.path.style.access": "true",

@@ -1,2 +1,11 @@
 .DS_Store
 .vscode
+
+flink-playground-clickcountjob/target
+playground-clickcountproducer/target
+
+docker-producer/flink-playground-clickcountproducer-1-FLINK-1.19.1.jar
+docker-flink-job/flink-playground-clickcountjob-1-FLINK-1.19.1.jar
+
+flink-playground-clickcountjob/.idea
+playground-clickcountproducer/.idea

@@ -14,7 +14,11 @@ Based on https://docs.confluent.io/platform/current/flink/get-started.html
     - [Deploy MinIO](#deploy-minio)
     - [Create an environment with durable storage](#create-an-environment-with-durable-storage)
     - [Create the application with durable storage](#create-the-application-with-durable-storage)
-    - [Delete application](#delete-application)
+    - [Delete application and environment](#delete-application-and-environment)
+  - [CP Kafka and CP Flink](#cp-kafka-and-cp-flink)
+    - [Start Kafka](#start-kafka)
+    - [Producer](#producer)
+    - [Flink Job](#flink-job)
   - [Cleanup](#cleanup)
 
 ## Disclaimer
@@ -219,10 +223,158 @@ Open http://localhost:8090/
 
 Navigate on Object Browser in MinIO and check the test bucket is being populated with checkpoint data from Flink.
 
-### Delete application
+### Delete application and environment
 
 ```shell
 confluent flink application delete durable-example --environment env2 --url http://localhost:8080
+confluent flink environment delete env2 --url http://localhost:8080
+```
+
+## CP Kafka and CP Flink
+
+### Start Kafka
+
+Run:
+
+```shell
+kubectl create namespace confluent
+kubectl config set-context --current --namespace=confluent
+helm repo add confluentinc https://packages.confluent.io/helm
+helm upgrade --install operator confluentinc/confluent-for-kubernetes --namespace confluent
+```
+
+Check pods:
+
+```shell
+kubectl get pods --namespace confluent
+```
+
+Once the operator pod is ready we install kafka cluster:
+
+```shell
+kubectl apply -f kafka.yaml
+```
+
+And wait for all pods (kraft and kafka) to be ready:
+
+```shell
+kubectl get pods --namespace confluent
+```
+
+Check topics listed include demotopic:
+
+```shell
+kubectl exec kafka-0 -- kafka-topics --bootstrap-server localhost:9092 --list
+```
+
+### Producer
+
+The Java projects are copied from https://github.com/apache/flink-playgrounds/tree/master/docker/ops-playground-image/java/flink-playground-clickcountjob. We have changed to adapt to our deployment:
+- kafka producer microservice
+- flink job
+
+To compile:
+
+```shell
+cd playground-clickcountproducer
+mvn clean verify
+cp target/flink-playground-clickcountproducer-1-FLINK-1.19.1.jar ../docker-producer
+cd ..
+```
+
+Build the docker image:
+
+```shell
+cd docker-producer
+DOCKER_BUILDKIT=1 docker build . -t my-kafka-producer:latest
+kind load docker-image my-kafka-producer:latest
+cd ..
+```
+
+Create the topic:
+
+```shell
+kubectl exec kafka-0 -- kafka-topics --bootstrap-server localhost:9092 --topic input --create --partitions 1 --replication-factor 1
+```
+
+Deploy the producer:
+
+```shell
+kubectl apply -f producer.yaml -n default
+```
+
+You can list the pods:
+
+```shell
+kubectl get pods -o wide -n default
+```
+
+And with the producer pod name check logs:
+
+```shell
+kubectl logs -f kafka-producer-589dbb9c7f-tvd2n -n default
+```
+
+And also check messages being written to topic:
+
+```shell
+kubectl exec kafka-0 -- kafka-console-consumer --bootstrap-server localhost:9092 --topic input --from-beginning --property print.timestamp=true --property print.key=true --property print.value=true
+```
+
+### Flink Job
+
+Compile first:
+
+```shell
+cd flink-playground-clickcountjob
+mvn clean verify
+cp target/flink-playground-clickcountproducer-1-FLINK-1.19.1.jar ../docker-flink-job
+cd ..
+```
+
+Next we build the docker image for our flink job:
+
+```shell
+cd docker-flink-job
+DOCKER_BUILDKIT=1 docker build . -t my-flink-job:latest
+kind load docker-image my-flink-job:latest
+cd ..
+```
+
+Now we create our environment:
+
+```shell
+confluent flink environment create env3 --url http://localhost:8080 --kubernetes-namespace default --defaults environment_defaults_cp.json
+```
+
+We create our ouput topic:
+
+```shell
+kubectl exec kafka-0 -- kafka-topics --bootstrap-server localhost:9092 --topic output --create --partitions 1 --replication-factor 1
+```
+
+And finally deploy our application:
+
+```shell
+confluent flink application create application-cp.json --environment env3 --url http://localhost:8080
+```
+
+We can check our flink pods being deployed:
+
+```shell
+kubectl get pods -o wide -n default
+```
+
+And checl the logs of one of the task manager once running:
+
+```shell
+kubectl logs -f cp-example-taskmanager-1-2 -n default 
+```
+
+And finally check our topic output being populated:
+
+```shell
+kubectl exec kafka-0 -- kafka-console-consumer --bootstrap-server localhost:9092 --topic output --from-beginning --property print.timestamp=true --property print.key=true --property print.value=true
 ```
 
 ## Cleanup

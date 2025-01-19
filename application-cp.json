@@ -1,0 +1,57 @@
+{
+   "apiVersion": "cmf.confluent.io/v1alpha1",
+   "kind": "FlinkApplication",
+   "metadata": {
+      "name": "cp-example"
+   },
+   "spec": {
+      "podTemplate": {
+         "metadata": {
+            "name": "pod-template"
+         },
+         "spec": {
+            "volumes": [
+               {
+                  "name": "flink-data",
+                  "emptyDir": {}
+               }
+            ],
+            "containers": [
+               {
+                  "name": "flink-main-container",
+                  "env": [
+                     {
+                        "name": "ENABLE_BUILT_IN_PLUGINS",
+                        "value": "flink-s3-fs-hadoop-1.19.1-cp1.jar;flink-s3-fs-presto-1.19.1-cp1.jar"
+                     }
+                  ],
+                  "volumeMounts": [
+                     {
+                        "name": "flink-data",
+                        "mountPath": "/opt/flink-data"
+                     }
+                  ]
+               }
+            ]
+         }
+      },
+      "job": {
+         "jarURI": "local:///lib/job.jar",
+         "parallelism": 3,
+         "state": "running",
+         "upgradeMode": "stateless"
+      },
+      "jobManager": {
+         "resource": {
+            "cpu": 1,
+            "memory": "1048m"
+         }
+      },
+      "taskManager": {
+         "resource": {
+            "cpu": 1,
+            "memory": "1048m"
+         }
+      }
+   }
+}
