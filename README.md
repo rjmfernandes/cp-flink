@@ -428,10 +428,10 @@ Check pods:
 kubectl get pods -o wide -n default
 ```
 
-And check the logs of one of the task managers once running:
+And check the logs of the job manager once running:
 
 ```shell
-kubectl logs -f sql-example-taskmanager-1-2 -n default 
+kubectl logs -f sql-example-7796c7f7c5-gkq2c -n default
 ```
 
 And now lets check our topic:
