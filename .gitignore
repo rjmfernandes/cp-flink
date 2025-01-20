@@ -3,9 +3,11 @@
 
 flink-playground-clickcountjob/target
 playground-clickcountproducer/target
+flink-sql-runner-example/target
 
 docker-producer/flink-playground-clickcountproducer-1-FLINK-1.19.1.jar
 docker-flink-job/flink-playground-clickcountjob-1-FLINK-1.19.1.jar
 
 flink-playground-clickcountjob/.idea
 playground-clickcountproducer/.idea
+flink-sql-runner-example/.idea

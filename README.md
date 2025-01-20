@@ -19,6 +19,10 @@ Based on https://docs.confluent.io/platform/current/flink/get-started.html
     - [Start Kafka](#start-kafka)
     - [Producer](#producer)
     - [Flink Job](#flink-job)
+    - [Delete application and environment](#delete-application-and-environment-1)
+  - [Flink SQL with CP](#flink-sql-with-cp)
+    - [Compile and build docker image](#compile-and-build-docker-image)
+    - [Create environment and deploy application](#create-environment-and-deploy-application)
   - [Cleanup](#cleanup)
 
 ## Disclaimer
@@ -365,7 +369,7 @@ We can check our flink pods being deployed:
 kubectl get pods -o wide -n default
 ```
 
-And checl the logs of one of the task manager once running:
+And check the logs of one of the task managers once running:
 
 ```shell
 kubectl logs -f cp-example-taskmanager-1-2 -n default 
@@ -375,6 +379,65 @@ And finally check our topic output being populated:
 
 ```shell
 kubectl exec kafka-0 -- kafka-console-consumer --bootstrap-server localhost:9092 --topic output --from-beginning --property print.timestamp=true --property print.key=true --property print.value=true
+```
+
+### Delete application and environment
+
+```shell
+confluent flink application delete cp-example --environment env3 --url http://localhost:8080
+confluent flink environment delete env3 --url http://localhost:8080
+```
+
+## Flink SQL with CP
+
+### Compile and build docker image
+
+To compile:
+
+```shell
+cd flink-sql-runner-example
+mvn clean verify
+```
+
+Build the docker image:
+
+```shell
+DOCKER_BUILDKIT=1 docker build . -t flink-sql-runner-example:latest
+kind load docker-image flink-sql-runner-example:latest
+cd ..
+```
+
+### Create environment and deploy application
+
+Let's first create our new output topic to be used by our Flink application:
+
+```shell
+kubectl exec kafka-0 -- kafka-topics --bootstrap-server localhost:9092 --topic output2 --create --partitions 1 --replication-factor 1
+```
+
+And now create our environment/app:
+
+```shell
+confluent flink environment create env4 --url http://localhost:8080 --kubernetes-namespace default --defaults environment_defaults_sql.json
+confluent flink application create application-sql.json --environment env4 --url http://localhost:8080
+```
+
+Check pods:
+
+```shell
+kubectl get pods -o wide -n default
+```
+
+And check the logs of one of the task managers once running:
+
+```shell
+kubectl logs -f sql-example-taskmanager-1-2 -n default 
+```
+
+And now lets check our topic:
+
+```shell
+kubectl exec kafka-0 -- kafka-console-consumer --bootstrap-server localhost:9092 --topic output2 --from-beginning --property print.timestamp=true --property print.key=true --property print.value=true
 ```
 
 ## Cleanup

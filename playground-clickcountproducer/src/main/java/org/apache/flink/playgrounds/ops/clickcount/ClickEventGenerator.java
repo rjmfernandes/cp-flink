@@ -88,11 +88,9 @@ public class ClickEventGenerator {
 
 	static class ClickIterator  {
 
-		private Map<String, Long> nextTimestampPerKey;
 		private int nextPageIndex;
 
 		ClickIterator() {
-			nextTimestampPerKey = new HashMap<>();
 			nextPageIndex = 0;
 		}
 
@@ -102,8 +100,7 @@ public class ClickEventGenerator {
 		}
 
 		private Date nextTimestamp(String page) {
-			long nextTimestamp = nextTimestampPerKey.getOrDefault(page, 0L);
-			nextTimestampPerKey.put(page, nextTimestamp + WINDOW_SECONDS_SIZE*1000 / EVENTS_PER_WINDOW);
+			long nextTimestamp =  System.currentTimeMillis();
 			return new Date(nextTimestamp);
 		}
 
