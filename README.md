@@ -87,7 +87,7 @@ confluentinc/confluent-manager-for-apache-flink
 Check pods are deployed correctly:
 
 ```shell
-kubectl get pods
+watch kubectl get pods
 ```
 
 ## Deploy Flink jobs
@@ -113,7 +113,7 @@ confluent flink application create application.json --environment env1 --url htt
 Check pods:
 
 ```shell
-kubectl get pods
+watch kubectl get pods
 ```
 
 Access Flink Web UI to check applcation was created successfully:
@@ -135,7 +135,7 @@ confluent flink application delete basic-example --environment env1 --url http:/
 Check the pods:
 
 ```shell
-kubectl get pods
+watch kubectl get pods
 ```
 
 ### Delete the environment
@@ -164,7 +164,7 @@ kubectl -n minio-dev create -f ./minio.yaml
 Check everything is ready:
 
 ```shell
-kubectl get pods -n minio-dev
+watch kubectl get pods -n minio-dev
 ```
 
 Let's define the rest service for minio and install ingress:
@@ -214,7 +214,7 @@ confluent flink application create application-durable.json --environment env2 -
 Check pods:
 
 ```shell
-kubectl get pods 
+watch kubectl get pods 
 ```
 
 Access Flink Web UI to check applcation was created successfully:
@@ -250,7 +250,7 @@ helm upgrade --install operator confluentinc/confluent-for-kubernetes --namespac
 Check pods:
 
 ```shell
-kubectl get pods --namespace confluent
+watch kubectl get pods --namespace confluent
 ```
 
 Once the operator pod is ready we install kafka cluster:
@@ -262,7 +262,7 @@ kubectl apply -f kafka.yaml
 And wait for all pods (kraft and kafka) to be ready:
 
 ```shell
-kubectl get pods --namespace confluent
+watch kubectl get pods --namespace confluent
 ```
 
 Check topics listed include demotopic:
@@ -310,7 +310,7 @@ kubectl apply -f producer.yaml -n default
 You can list the pods:
 
 ```shell
-kubectl get pods -o wide -n default
+watch kubectl get pods -o wide -n default
 ```
 
 And with the producer pod name check logs:
@@ -332,7 +332,7 @@ Compile first:
 ```shell
 cd flink-playground-clickcountjob
 mvn clean verify
-cp target/flink-playground-clickcountproducer-1-FLINK-1.19.1.jar ../docker-flink-job
+cp target/flink-playground-clickcountjob-1-FLINK-1.19.1.jar ../docker-flink-job
 cd ..
 ```
 
@@ -366,7 +366,7 @@ confluent flink application create application-cp.json --environment env3 --url 
 We can check our flink pods being deployed:
 
 ```shell
-kubectl get pods -o wide -n default
+watch kubectl get pods -o wide -n default
 ```
 
 And check the logs of one of the task managers once running:
@@ -425,7 +425,7 @@ confluent flink application create application-sql.json --environment env4 --url
 Check pods:
 
 ```shell
-kubectl get pods -o wide -n default
+watch kubectl get pods -o wide -n default
 ```
 
 And check the logs of the job manager once running:
