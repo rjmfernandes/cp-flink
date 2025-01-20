@@ -225,7 +225,7 @@ confluent flink application web-ui-forward durable-example --environment env2 --
 
 Open http://localhost:8090/
 
-Navigate on Object Browser in MinIO and check the test bucket is being populated with checkpoint data from Flink.
+Navigate on Object Browser in MinIO and check the test bucket is being populated with checkpoint metadata from Flink.
 
 ### Delete application and environment
 

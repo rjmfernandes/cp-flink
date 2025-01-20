@@ -21,6 +21,23 @@ GROUP BY
     `page`;
 
 
+
+CREATE TABLE kafka_topic_input (
+    `timestamp` STRING,
+    `page` STRING,
+    `event_time` AS TO_TIMESTAMP(`timestamp`, 'dd-MM-yyyy HH:mm:ss:SSS'),
+     WATERMARK FOR `event_time` AS `event_time` - INTERVAL '1' SECOND
+) WITH (
+    'connector' = 'kafka',
+    'topic' = 'input',
+    'properties.bootstrap.servers' = 'kafka.confluent.svc.cluster.local:9092',
+    'properties.group.id' = 'flink-sql-consumer-group',
+    'scan.startup.mode' = 'earliest-offset',
+    'format' = 'json',
+    'json.fail-on-missing-field' = 'true',
+    'json.ignore-parse-errors' = 'false'
+);
+
 CREATE TABLE kafka_topic_output (
     `windowStart` STRING,  
     `windowEnd` STRING,    
