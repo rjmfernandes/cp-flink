@@ -14,7 +14,6 @@
           "rest.flamegraph.enabled": "true"
        },
        "flinkVersion": "v1_19",
-       "image": "my-flink-job",
        "serviceAccount": "flink"
     }
 }

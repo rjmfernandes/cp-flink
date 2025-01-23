@@ -1,13 +1,11 @@
 # CP Flink
 
-Based on https://docs.confluent.io/platform/current/flink/get-started.html
-
 - [CP Flink](#cp-flink)
   - [Disclaimer](#disclaimer)
   - [Setup](#setup)
     - [Start Ingress Ready Cluster](#start-ingress-ready-cluster)
     - [Install Confluent Manager for Apache Flink](#install-confluent-manager-for-apache-flink)
-  - [Deploy Flink jobs](#deploy-flink-jobs)
+  - [Deploy Basic Flink job](#deploy-basic-flink-job)
     - [Delete the application](#delete-the-application)
     - [Delete the environment](#delete-the-environment)
   - [Durable Storage](#durable-storage)
@@ -71,6 +69,8 @@ Install certificate manager:
 kubectl create -f https://github.com/jetstack/cert-manager/releases/download/v1.8.2/cert-manager.yaml
 ```
 
+In case you find errors here check https://cert-manager.io/docs/troubleshooting/webhook/ 
+
 Install Flink Kubernetes Operator:
 
 ```shell
@@ -90,15 +90,17 @@ Check pods are deployed correctly:
 watch kubectl get pods
 ```
 
-## Deploy Flink jobs
+## Deploy Basic Flink job
 
-Open por forwarding for CMF:
+(Based on https://docs.confluent.io/platform/current/flink/get-started.html)
+
+Open port forwarding for CMF:
 
 ```shell
 kubectl port-forward svc/cmf-service 8080:80
 ```
 
-Create an environment using the Confluent CLI in another shell:
+In another terminal create an environment using the Confluent CLI in another shell:
 
 ```shell
 confluent flink environment create env1 --url http://localhost:8080 --kubernetes-namespace default
@@ -107,7 +109,7 @@ confluent flink environment create env1 --url http://localhost:8080 --kubernetes
 Create the application:
 
 ```shell
-confluent flink application create application.json --environment env1 --url http://localhost:8080
+confluent flink application create basic-flink-job/application.json --environment env1 --url http://localhost:8080
 ```
 
 Check pods:
@@ -116,17 +118,46 @@ Check pods:
 watch kubectl get pods
 ```
 
+You should have something like this:
+
+```
+NAME                                                  READY   STATUS    RESTARTS   AGE
+basic-example-6b65f89695-tzvjb                        1/1     Running   0          23s
+basic-example-taskmanager-1-1                         1/1     Running   0          14s
+basic-example-taskmanager-1-2                         1/1     Running   0          14s
+basic-example-taskmanager-1-3                         1/1     Running   0          14s
+confluent-manager-for-apache-flink-6bfc7bdcb4-2tfdv   1/1     Running   0          3m36s
+flink-kubernetes-operator-657d54bfdb-qm78z            2/2     Running   0          3m41s
+```
+
 Access Flink Web UI to check applcation was created successfully:
 
 ```shell
 confluent flink application web-ui-forward basic-example --environment env1 --port 8090 --url http://localhost:8080
 ```
 
-Open http://localhost:8090/
+Open http://localhost:8090/ for seeing the Flink dashboard.
+
+You can canel the web-ui-forwarding and do a grep on logs to see the version being used:
+
+```shell
+k logs basic-example-taskmanager-1-1 |grep ' Starting Kubernetes TaskExecutor runner'
+```
+
+Which should show something like this:
+
+```
+2025-01-23 14:21:53,931 INFO  org.apache.flink.kubernetes.taskmanager.KubernetesTaskExecutorRunner [] -  Starting Kubernetes TaskExecutor runner (Version: 1.19.1-cp1, Scala: 2.12, Rev:89d0b8f, Date:2024-06-22T13:19:31+02:00)
+```
+
+Indicating version is `1.19.1-cp1`.
+
+For more details on the job check https://github.com/apache/flink/blob/master/flink-examples/flink-examples-streaming/src/main/java/org/apache/flink/streaming/examples/statemachine/StateMachineExample.java
+
 
 ### Delete the application
 
-Cancel the `web-ui-forward` and execute:
+Execute:
 
 ```shell
 confluent flink application delete basic-example --environment env1 --url http://localhost:8080
@@ -158,7 +189,7 @@ Let's deploy minio in its namespace minio-dev:
 
 ```shell
 kubectl create ns minio-dev
-kubectl -n minio-dev create -f ./minio.yaml
+kubectl -n minio-dev create -f durable/minio/minio.yaml
 ```
 
 Check everything is ready:
@@ -170,7 +201,7 @@ watch kubectl get pods -n minio-dev
 Let's define the rest service for minio and install ingress:
 
 ```shell
-kubectl -n minio-dev create -f ./minio-rest.yaml
+kubectl -n minio-dev create -f durable/minio/minio-rest.yaml
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
 ```
 
@@ -183,10 +214,12 @@ kubectl wait --namespace ingress-nginx \
   --timeout=90s
 ```
 
+If it takes longer than 90s, just run the command again.
+
 We can now add ingress to expose the web dashboard:
 
 ```shell
-kubectl -n minio-dev create -f ./minio-web.yaml
+kubectl -n minio-dev create -f durable/minio/minio-web.yaml
 ```
 
 We can now login in MinIO (user: `minioadmin` password: `minioadmin`):
@@ -200,7 +233,7 @@ http://localhost/browser
 Create the environment:
 
 ```shell
-confluent flink environment create env2 --url http://localhost:8080 --kubernetes-namespace default --defaults environment_defaults.json
+confluent flink environment create env2 --url http://localhost:8080 --kubernetes-namespace default --defaults durable/environment_defaults.json
 ```
 
 ### Create the application with durable storage
@@ -208,7 +241,7 @@ confluent flink environment create env2 --url http://localhost:8080 --kubernetes
 Create the application:
 
 ```shell
-confluent flink application create application-durable.json --environment env2 --url http://localhost:8080
+confluent flink application create durable/application-durable.json --environment env2 --url http://localhost:8080
 ```
 
 Check pods:
@@ -228,6 +261,8 @@ Open http://localhost:8090/
 Navigate on Object Browser in MinIO and check the test bucket is being populated with checkpoint metadata from Flink.
 
 ### Delete application and environment
+
+You can cancel the web-ui-forwarding and execute: 
 
 ```shell
 confluent flink application delete durable-example --environment env2 --url http://localhost:8080
@@ -256,7 +291,7 @@ watch kubectl get pods --namespace confluent
 Once the operator pod is ready we install kafka cluster:
 
 ```shell
-kubectl apply -f kafka.yaml
+kubectl apply -f kafka/kafka.yaml
 ```
 
 And wait for all pods (kraft and kafka) to be ready:
@@ -280,19 +315,15 @@ The Java projects are copied from https://github.com/apache/flink-playgrounds/tr
 To compile:
 
 ```shell
-cd playground-clickcountproducer
+cd kafka/playground-clickcountproducer
 mvn clean verify
-cp target/flink-playground-clickcountproducer-1-FLINK-1.19.1.jar ../docker-producer
-cd ..
 ```
 
 Build the docker image:
 
 ```shell
-cd docker-producer
 DOCKER_BUILDKIT=1 docker build . -t my-kafka-producer:latest
 kind load docker-image my-kafka-producer:latest
-cd ..
 ```
 
 Create the topic:
@@ -310,10 +341,10 @@ kubectl apply -f producer.yaml -n default
 You can list the pods:
 
 ```shell
-watch kubectl get pods -o wide -n default
+kubectl get pods -o wide -n default
 ```
 
-And with the producer pod name check logs:
+Copy the producer pod name and check logs:
 
 ```shell
 kubectl logs -f kafka-producer-589dbb9c7f-tvd2n -n default
@@ -330,24 +361,21 @@ kubectl exec kafka-0 -- kafka-console-consumer --bootstrap-server localhost:9092
 Compile first:
 
 ```shell
-cd flink-playground-clickcountjob
+cd ../flink-playground-clickcountjob
 mvn clean verify
-cp target/flink-playground-clickcountjob-1-FLINK-1.19.1.jar ../docker-flink-job
-cd ..
 ```
 
 Next we build the docker image for our flink job:
 
 ```shell
-cd docker-flink-job
 DOCKER_BUILDKIT=1 docker build . -t my-flink-job:latest
 kind load docker-image my-flink-job:latest
-cd ..
 ```
 
 Now we create our environment:
 
 ```shell
+cd ..
 confluent flink environment create env3 --url http://localhost:8080 --kubernetes-namespace default --defaults environment_defaults_cp.json
 ```
 
@@ -395,7 +423,7 @@ confluent flink environment delete env3 --url http://localhost:8080
 To compile:
 
 ```shell
-cd flink-sql-runner-example
+cd ../sql/flink-sql-runner-example
 mvn clean verify
 ```
 
@@ -404,7 +432,6 @@ Build the docker image:
 ```shell
 DOCKER_BUILDKIT=1 docker build . -t flink-sql-runner-example:latest
 kind load docker-image flink-sql-runner-example:latest
-cd ..
 ```
 
 ### Create environment and deploy application
@@ -418,6 +445,7 @@ kubectl exec kafka-0 -- kafka-topics --bootstrap-server localhost:9092 --topic o
 And now create our environment/app:
 
 ```shell
+cd ..
 confluent flink environment create env4 --url http://localhost:8080 --kubernetes-namespace default --defaults environment_defaults_sql.json
 confluent flink application create application-sql.json --environment env4 --url http://localhost:8080
 ```

@@ -5,6 +5,7 @@
       "name": "cp-example"
    },
    "spec": {
+      "image": "my-flink-job",
       "podTemplate": {
          "metadata": {
             "name": "pod-template"

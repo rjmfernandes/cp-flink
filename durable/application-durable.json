@@ -1,21 +1,11 @@
 {
+    "apiVersion": "cmf.confluent.io/v1alpha1",
+    "kind": "FlinkApplication",
+    "metadata": {
+       "name": "durable-example"
+    },
     "spec": {
-       "flinkConfiguration": {
-          "metrics.reporter.prom.factory.class": "org.apache.flink.metrics.prometheus.PrometheusReporterFactory",
-          "metrics.reporter.prom.port": "9249-9250",
-          "taskmanager.numberOfTaskSlots": "1",
-          "state.savepoints.dir": "s3://test/savepoints",
-          "state.checkpoints.dir": "s3://test/checkpoints",
-          "s3.endpoint": "http://minio-svc.minio-dev:9000",
-          "s3.path.style.access": "true",
-          "s3.access-key": "minioadmin",
-          "s3.secret-key": "minioadmin",
-          "execution.checkpointing.interval": "10000",
-          "rest.flamegraph.enabled": "true"
-       },
-       "flinkVersion": "v1_19",
        "image": "confluentinc/cp-flink:1.19.1-cp1",
-       "serviceAccount": "flink",
        "podTemplate": {
          "metadata": {
             "name": "pod-template"
@@ -45,6 +35,24 @@
                }
             ]
          }
+       },
+       "job": {
+          "jarURI": "local:///opt/flink/examples/streaming/StateMachineExample.jar",
+          "parallelism": 3,
+          "state": "running",
+          "upgradeMode": "stateless"
+       },
+       "jobManager": {
+          "resource": {
+          "cpu": 1,
+          "memory": "1048m"
+          }
+       },
+       "taskManager": {
+          "resource": {
+          "cpu": 1,
+          "memory": "1048m"
+          }
        }
     }
 }
