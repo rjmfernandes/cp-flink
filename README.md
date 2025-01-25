@@ -94,9 +94,10 @@ watch kubectl get pods
 
 (Based on https://docs.confluent.io/platform/current/flink/get-started.html)
 
-Open port forwarding for CMF:
+Create service account flink and open port forwarding for CMF:
 
 ```shell
+kubectl create serviceaccount flink --namespace default
 kubectl port-forward svc/cmf-service 8080:80
 ```
 
