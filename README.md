@@ -457,7 +457,7 @@ confluent flink application create application-sql.json --environment env4 --url
 Check pods:
 
 ```shell
-watch kubectl get pods -o wide -n default
+kubectl get pods -n default
 ```
 
 And check the logs of the job manager once running:
