@@ -69,7 +69,11 @@ Install certificate manager:
 kubectl create -f https://github.com/jetstack/cert-manager/releases/download/v1.8.2/cert-manager.yaml
 ```
 
-In case you find errors here check https://cert-manager.io/docs/troubleshooting/webhook/ 
+In general wait until an endpoint IP is assigned when executing the following:
+
+```shell
+kubectl get endpoints -n cert-manager cert-manager-webhook
+```
 
 Install Flink Kubernetes Operator:
 
